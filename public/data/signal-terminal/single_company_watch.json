@@ -1,0 +1,177 @@
+[
+  {
+    "title": "Is Nvidia the Best Buy in the Entire Stock Market?",
+    "unique_tickers": [
+      "NVDA"
+    ],
+    "site_name": "The Motley Fool Feed",
+    "ops_score": 2,
+    "ops_reasons": [
+      "watch_source",
+      "single_ticker",
+      "title_ticker_aligned",
+      "opinion_like_title"
+    ],
+    "why_watch": null,
+    "source_url": null
+  },
+  {
+    "title": "Prediction: Nvidia Stock Is a Buy Before May 20",
+    "unique_tickers": [
+      "NVDA"
+    ],
+    "site_name": "The Motley Fool Feed",
+    "ops_score": 2,
+    "ops_reasons": [
+      "watch_source",
+      "single_ticker",
+      "title_ticker_aligned",
+      "opinion_like_title"
+    ],
+    "why_watch": null,
+    "source_url": null
+  },
+  {
+    "title": "Bull vs. Bear: Is Nvidia a Buy or Sell? Let's Look at the Bullish and Bearish Cases for the Stock.",
+    "unique_tickers": [
+      "NVDA"
+    ],
+    "site_name": "The Motley Fool Feed",
+    "ops_score": 2,
+    "ops_reasons": [
+      "watch_source",
+      "single_ticker",
+      "title_ticker_aligned",
+      "opinion_like_title"
+    ],
+    "why_watch": null,
+    "source_url": null
+  },
+  {
+    "title": "After Reaching a Deal With Anthropic, Is CoreWeave Proving to Be the Ultimate Artificial Intelligence (AI) Stock to Own?",
+    "unique_tickers": [
+      "META"
+    ],
+    "site_name": "The Motley Fool Feed",
+    "ops_score": 3,
+    "ops_reasons": [
+      "watch_source",
+      "single_ticker",
+      "title_ticker_misaligned",
+      "hard_news_title"
+    ],
+    "why_watch": null,
+    "source_url": null
+  },
+  {
+    "title": "Why Palantir Is Much More Than Just Another AI Stock",
+    "unique_tickers": [
+      "PLTR"
+    ],
+    "site_name": "The Motley Fool Feed",
+    "ops_score": 2,
+    "ops_reasons": [
+      "watch_source",
+      "single_ticker",
+      "title_ticker_aligned",
+      "opinion_like_title"
+    ],
+    "why_watch": null,
+    "source_url": null
+  },
+  {
+    "title": "Is It Too Late to Buy Tesla Stock?",
+    "unique_tickers": [
+      "TSLA"
+    ],
+    "site_name": "The Motley Fool Feed",
+    "ops_score": 2,
+    "ops_reasons": [
+      "watch_source",
+      "single_ticker",
+      "title_ticker_aligned",
+      "opinion_like_title"
+    ],
+    "why_watch": null,
+    "source_url": null
+  },
+  {
+    "title": "NVIDIA's $1 Trillion AI Story May Be Getting Misread",
+    "unique_tickers": [
+      "NVDA"
+    ],
+    "site_name": "The Motley Fool Feed",
+    "ops_score": 2,
+    "ops_reasons": [
+      "watch_source",
+      "single_ticker",
+      "title_ticker_aligned",
+      "opinion_like_title"
+    ],
+    "why_watch": null,
+    "source_url": null
+  },
+  {
+    "title": "Nike Reported Its Q3 Earnings Last Week. Is a Turnaround on the Horizon for the Struggling Retailer?",
+    "unique_tickers": [
+      "AMZN"
+    ],
+    "site_name": "The Motley Fool Feed",
+    "ops_score": 3,
+    "ops_reasons": [
+      "watch_source",
+      "single_ticker",
+      "title_ticker_misaligned",
+      "hard_news_title"
+    ],
+    "why_watch": null,
+    "source_url": null
+  },
+  {
+    "title": "AI Juggernaut Rumbles on Even as Markets Whipsaw",
+    "unique_tickers": [
+      "META"
+    ],
+    "site_name": "Bloomberg Top News",
+    "ops_score": 3,
+    "ops_reasons": [
+      "trusted_source",
+      "single_ticker",
+      "title_ticker_misaligned"
+    ],
+    "why_watch": null,
+    "source_url": null
+  },
+  {
+    "title": "Rio Is Said to Draw Interest for Critical Mineral Assets in California",
+    "unique_tickers": [
+      "RIO"
+    ],
+    "site_name": "Bloomberg Industries",
+    "ops_score": 6,
+    "ops_reasons": [
+      "trusted_source",
+      "single_ticker",
+      "title_ticker_aligned",
+      "rumor_like_title"
+    ],
+    "why_watch": null,
+    "source_url": null
+  },
+  {
+    "title": "Former OpenAI Stargate Leaders Plan to Join Meta Platforms",
+    "unique_tickers": [
+      "META"
+    ],
+    "site_name": "Bloomberg Business",
+    "ops_score": 6,
+    "ops_reasons": [
+      "trusted_source",
+      "single_ticker",
+      "title_ticker_aligned",
+      "rumor_like_title"
+    ],
+    "why_watch": null,
+    "source_url": null
+  }
+]

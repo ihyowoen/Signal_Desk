@@ -1,0 +1,70 @@
+[
+  {
+    "group_key": "TSLA|approval",
+    "primary_ticker": "TSLA",
+    "display_title": "Dutch Regulators Approve Tesla’s Full Self-Driving Software",
+    "summary_line": "네덜란드 규제 승인으로 Tesla FSD의 유럽 확장 신호가 확인됐다. 같은 사건은 한 건으로 묶고 출처는 모두 노출한다.",
+    "primary_source": "Bloomberg Industries",
+    "primary_source_url": null,
+    "also_covered_by": [
+      "Electrek",
+      "Teslarati"
+    ],
+    "also_covered_by_sources": [
+      {
+        "name": "Electrek",
+        "url": null
+      },
+      {
+        "name": "Teslarati",
+        "url": null
+      }
+    ],
+    "source_count": 3,
+    "all_sources": [
+      {
+        "name": "Electrek",
+        "url": null,
+        "is_primary": false
+      },
+      {
+        "name": "Teslarati",
+        "url": null,
+        "is_primary": false
+      },
+      {
+        "name": "Bloomberg Industries",
+        "url": null,
+        "is_primary": true
+      }
+    ],
+    "member_titles": [
+      "Tesla gets FSD Supervised approved in the Netherlands — here’s what it means",
+      "Tesla Full Self-Driving gets first-ever European approval",
+      "Dutch Regulators Approve Tesla’s Full Self-Driving Software"
+    ],
+    "member_count": 3
+  },
+  {
+    "group_key": "MSFT|pause",
+    "primary_ticker": "MSFT",
+    "display_title": "Microsoft Staff Tell Carbon Removal Projects That Deals Paused",
+    "summary_line": "Microsoft의 탄소제거 계약 중단은 관련 프로젝트와 탄소제거 시장 심리에 직접적인 시그널이다.",
+    "primary_source": "Bloomberg Green",
+    "primary_source_url": null,
+    "also_covered_by": [],
+    "also_covered_by_sources": [],
+    "source_count": 1,
+    "all_sources": [
+      {
+        "name": "Bloomberg Green",
+        "url": null,
+        "is_primary": true
+      }
+    ],
+    "member_titles": [
+      "Microsoft Staff Tell Carbon Removal Projects That Deals Paused"
+    ],
+    "member_count": 1
+  }
+]

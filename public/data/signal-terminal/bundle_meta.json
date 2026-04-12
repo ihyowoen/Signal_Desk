@@ -1,0 +1,15 @@
+{
+  "run_dir": "/home/hyoni624/sbtl_bot/market_monitor/out/20260412_142652",
+  "sources": {
+    "grouped_alerts": "/home/hyoni624/sbtl_bot/market_monitor/out/20260412_142652/ticker_ops/rerun_linked_grouped_grouped_alerts.jsonl",
+    "single_company_watch": "/home/hyoni624/sbtl_bot/market_monitor/out/20260412_142652/ticker_ops/fullrun_20260412_142652_ticker_enriched_single_company_watch.jsonl",
+    "multi_company_links": "/home/hyoni624/sbtl_bot/market_monitor/out/20260412_142652/ticker_classified/fullrun_20260412_142652_ticker_enriched_multi_company_links.jsonl",
+    "macro_cards_source": "/home/hyoni624/sbtl_bot/market_monitor/out/20260412_142652/general_split/fullrun_20260412_142652_macro_keep_20260412_142654.jsonl"
+  },
+  "counts": {
+    "grouped_alerts": 2,
+    "single_company_watch": 11,
+    "multi_company_links": 13,
+    "macro_cards": 12
+  }
+}
