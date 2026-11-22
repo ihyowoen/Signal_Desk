@@ -1,4 +1,4 @@
-name: SIL R53 SEC Micron Source Census (isolated research branch)
+name: SIL R53 Micron Issuer Source PDF (research branch only)
 on:
   push:
     branches:
@@ -7,20 +7,48 @@ on:
 permissions:
   contents: read
 jobs:
-  collect_public_sec:
+  issuer_hosted_original:
     if: github.ref == 'refs/heads/research/sil-r53-sec-census-20261122'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-      - name: Collect SEC original submissions and Micron 12 original 10-K/10-Q filings
+      - name: Fetch Micron issuer-hosted FY2026 10-K raw PDF and verify SHA256
         run: |
-          python3 research/sil-r53/sec_census.py
-      - name: Upload immutable evidence and failure diagnostics
+          python3 - <<'PY'
+          import hashlib,json,subprocess,sys
+          from pathlib import Path
+          from urllib.request import Request,urlopen
+          url='https://d18rn0p25nwr6d.cloudfront.net/CIK-0000723125/5dafce68-38e8-4cad-a8f3-ab56d04d73fd.pdf'
+          out=Path('out');out.mkdir(exist_ok=True)
+          result={'source_url':url,'form':'10-K','issuer':'Micron Technology Inc','period_end':'2026-09-03','sec_accession':'0000723125-26-000023','SEC_original_binary_equivalence':'NOT_TESTED','errors':[]}
+          try:
+              req=Request(url,headers={'User-Agent':'SIL Evidence Audit (https://github.com/ihyowoen/Signal_Desk/issues)','Accept':'application/pdf'})
+              with urlopen(req,timeout=45) as r:
+                  b=r.read()
+                  result['http_status']=r.status
+              if not b.startswith(b'%PDF-') or len(b)<50000: raise ValueError('Not valid original PDF')
+              p=out/'MICRON_FY2026_10K_ISSUER_20261009.pdf'
+              p.write_bytes(b)
+              result['bytes']=len(b);result['sha256']=hashlib.sha256(b).hexdigest()
+              try:
+                  c=subprocess.run(['pdftotext','-f','1','-l','3','-layout',str(p),'-'],capture_output=True,text=True,timeout=20)
+                  txt=c.stdout.upper()
+                  result['cover_identity']='PASS' if c.returncode==0 and 'MICRON TECHNOLOGY' in txt and '2026' in txt and 'FORM 10-K' in txt else 'NOT_VERIFIED'
+              except Exception as e: result['cover_identity']='NOT_VERIFIED:'+str(e)[:80]
+              result['custody']='ISSUER_PDF_RAW_BYTES_PRESERVED'
+          except Exception as e:
+              result['errors'].append(str(e)[:300])
+              result['custody']='FAILED'
+          (out/'R53_ISSUER_RESULT.json').write_text(json.dumps(result,indent=2),encoding='utf8')
+          print(json.dumps(result))
+          sys.exit(0 if result['custody']=='ISSUER_PDF_RAW_BYTES_PRESERVED' and result.get('cover_identity')=='PASS' else 2)
+          PY
+      - name: Upload issuer original PDF or raw failure evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sil-r53-sec-micron-20261122
+          name: sil-r53-micron-issuer-fy2026
           path: out/
           if-no-files-found: warn
           retention-days: 7
