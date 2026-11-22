@@ -1,4 +1,4 @@
-name: SIL R53 Micron FY2024-25 issuer source PDF archive
+name: SIL R54 Micron 2024 first-party PDF custody
 on:
   push:
     branches:
@@ -6,50 +6,48 @@ on:
 permissions:
   contents: read
 jobs:
-  issuer_pdf:
+  micron_2024:
     if: github.ref == 'refs/heads/research/sil-r53-sec-census-20261122'
     runs-on: ubuntu-latest
-    timeout-minutes: 9
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-      - name: Download FY2024 and FY2025 issuer-hosted original PDF and SHA256
+      - name: Download 2024 original issuer PDF and log exact provenance
         run: |
           python3 - <<'PY'
-          import hashlib,json,sys,time
+          import hashlib,json,subprocess,sys
           from pathlib import Path
-          from urllib.request import Request,urlopen
-          out=Path('out');out.mkdir(exist_ok=True)
-          sources=[
-           {'year':2024,'period_end':'2024-08-29','accession':'0000723125-24-000027','urls':['https://investors.micron.com/static-files/fa623e00-b0d7-4f70-bbc2-d52296cd9147','https://micron.gcs-web.com/static-files/c5f6c770-a182-417e-bb2b-6e192c403164']},
-           {'year':2025,'period_end':'2025-08-28','accession':'0000723125-25-000028','urls':['https://d18rn0p25nwr6d.cloudfront.net/CIK-0000723125/08ea2ece-dab3-40eb-9f2f-ad4f962573f8.pdf']}
-          ]
-          results=[]
-          for f in sources:
-              r={k:v for k,v in f.items() if k!='urls'}
-              r['filename']='MICRON_FY%d_10K_ISSUER.pdf'%f['year'];r['SEC_original_binary_equivalence']='NOT_TESTED'
-              attempts=[]
-              for url in f['urls']:
-                  try:
-                      req=Request(url,headers={'User-Agent':'SIL Evidence Audit (https://github.com/ihyowoen/Signal_Desk/issues)','Accept':'application/pdf','Accept-Encoding':'identity'})
-                      with urlopen(req,timeout=40) as resp:
-                          b=resp.read()
-                          r['status']=resp.status;r['content_type']=resp.headers.get('Content-Type')
-                      if not b.startswith(b'%PDF-') or len(b)<40000: raise ValueError('Non-PDF or truncated body')
-                      (out/r['filename']).write_bytes(b)
-                      r['bytes']=len(b);r['sha256']=hashlib.sha256(b).hexdigest();r['issuer_source_url']=url;r['custody']='PRESERVED';break
-                  except Exception as e:attempts.append({'url':url,'error':type(e).__name__+':'+str(e)[:160]})
-              else:r['custody']='FAILED'
-              r['attempts']=attempts;results.append(r)
-              print(json.dumps({'year':r['year'],'status':r['custody'],'bytes':r.get('bytes'),'sha256':r.get('sha256'),'errors':attempts}))
-              time.sleep(1)
-          (out/'R53_FY2024_2025_ISSUER_MANIFEST.json').write_text(json.dumps(results,indent=2),encoding='utf8')
-          sys.exit(0 if all(r['custody']=='PRESERVED' for r in results) else 2)
+          d=Path("out");d.mkdir(exist_ok=True)
+          urls=[
+            "https://micron.gcs-web.com/static-files/fa623e00-b0d7-4f70-bbc2-d52296cd9147",
+            "https://investors.micron.com/static-files/fa623e00-b0d7-4f70-bbc2-d52296cd9147",
+            "https://micron.gcs-web.com/static-files/c5f6c770-a182-417e-bb2b-6e192c403164",
+            "https://investors.micron.com/static-files/c5f6c770-a182-417e-bb2b-6e192c403164"]
+          result={"as_of_KST":"2026-11-23","fiscal_period":"2024-08-29","source":"Micron first party investor relations","SEC_accession":"0000723125-24-000027","SEC_original_binary_equivalence":"NOT_TESTED","attempts":[],"custody":"FAILED"}
+          for url in urls:
+            p=d/"try_download.bin";header=d/"response_headers.txt"
+            cmd=["curl","--location","--silent","--show-error","--fail","--max-time","28","--connect-timeout","9","--retry","0","--user-agent","Mozilla/5.0 (compatible; SILEvidenceResearch/1.0)","-H","Accept: application/pdf","-D",str(header),"-o",str(p),url]
+            v=subprocess.run(cmd,capture_output=True,text=True)
+            b=p.read_bytes() if p.exists() else b""
+            detail={"url":url,"curl_code":v.returncode,"byte_count":len(b),"file_magic":b[:12].hex(),"stderr":v.stderr[:220],"http_headers":header.read_text(errors="replace")[-650:] if header.exists() else ""}
+            result["attempts"].append(detail)
+            print(json.dumps({"url":url,"status":v.returncode,"len":len(b),"magic":b[:6].hex(),"stderr":v.stderr[:120]}),flush=True)
+            if v.returncode==0 and b.startswith(b"%PDF-") and len(b)>100000:
+              name="MICRON_FY2024_10K_ISSUER_20241004.pdf"
+              (d/name).write_bytes(b)
+              result.update({"custody":"PRESERVED","source_url":url,"filename":name,"bytes":len(b),"SHA256":hashlib.sha256(b).hexdigest()})
+              break
+          for name in ("try_download.bin","response_headers.txt"):
+            (d/name).unlink(missing_ok=True)
+          (d/"R54_FY2024_MANIFEST.json").write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding="utf-8")
+          print(json.dumps({k:v for k,v in result.items() if k!="attempts"}),flush=True)
+          sys.exit(0 if result["custody"]=="PRESERVED" else 2)
           PY
-      - name: Upload both issuer PDFs or diagnostics
+      - name: Upload raw source or diagnostics, even on failure
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sil-r53-micron-fy2024-fy2025-issuer
+          name: sil-r54-micron-fy2024-issuer
           path: out/
           if-no-files-found: warn
-          retention-days: 7
+          retention-days: 10
