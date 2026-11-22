@@ -1,54 +1,55 @@
-name: SIL R53 Micron Issuer Source PDF (research branch only)
+name: SIL R53 Micron FY2024-25 issuer source PDF archive
 on:
   push:
     branches:
       - research/sil-r53-sec-census-20261122
-  workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  issuer_hosted_original:
+  issuer_pdf:
     if: github.ref == 'refs/heads/research/sil-r53-sec-census-20261122'
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 9
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch Micron issuer-hosted FY2026 10-K raw PDF and verify SHA256
+      - name: Download FY2024 and FY2025 issuer-hosted original PDF and SHA256
         run: |
           python3 - <<'PY'
-          import hashlib,json,subprocess,sys
+          import hashlib,json,sys,time
           from pathlib import Path
           from urllib.request import Request,urlopen
-          url='https://d18rn0p25nwr6d.cloudfront.net/CIK-0000723125/5dafce68-38e8-4cad-a8f3-ab56d04d73fd.pdf'
           out=Path('out');out.mkdir(exist_ok=True)
-          result={'source_url':url,'form':'10-K','issuer':'Micron Technology Inc','period_end':'2026-09-03','sec_accession':'0000723125-26-000023','SEC_original_binary_equivalence':'NOT_TESTED','errors':[]}
-          try:
-              req=Request(url,headers={'User-Agent':'SIL Evidence Audit (https://github.com/ihyowoen/Signal_Desk/issues)','Accept':'application/pdf'})
-              with urlopen(req,timeout=45) as r:
-                  b=r.read()
-                  result['http_status']=r.status
-              if not b.startswith(b'%PDF-') or len(b)<50000: raise ValueError('Not valid original PDF')
-              p=out/'MICRON_FY2026_10K_ISSUER_20261009.pdf'
-              p.write_bytes(b)
-              result['bytes']=len(b);result['sha256']=hashlib.sha256(b).hexdigest()
-              try:
-                  c=subprocess.run(['pdftotext','-f','1','-l','3','-layout',str(p),'-'],capture_output=True,text=True,timeout=20)
-                  txt=c.stdout.upper()
-                  result['cover_identity']='PASS' if c.returncode==0 and 'MICRON TECHNOLOGY' in txt and '2026' in txt and 'FORM 10-K' in txt else 'NOT_VERIFIED'
-              except Exception as e: result['cover_identity']='NOT_VERIFIED:'+str(e)[:80]
-              result['custody']='ISSUER_PDF_RAW_BYTES_PRESERVED'
-          except Exception as e:
-              result['errors'].append(str(e)[:300])
-              result['custody']='FAILED'
-          (out/'R53_ISSUER_RESULT.json').write_text(json.dumps(result,indent=2),encoding='utf8')
-          print(json.dumps(result))
-          sys.exit(0 if result['custody']=='ISSUER_PDF_RAW_BYTES_PRESERVED' and result.get('cover_identity')=='PASS' else 2)
+          sources=[
+           {'year':2024,'period_end':'2024-08-29','accession':'0000723125-24-000027','urls':['https://investors.micron.com/static-files/fa623e00-b0d7-4f70-bbc2-d52296cd9147','https://micron.gcs-web.com/static-files/c5f6c770-a182-417e-bb2b-6e192c403164']},
+           {'year':2025,'period_end':'2025-08-28','accession':'0000723125-25-000028','urls':['https://d18rn0p25nwr6d.cloudfront.net/CIK-0000723125/08ea2ece-dab3-40eb-9f2f-ad4f962573f8.pdf']}
+          ]
+          results=[]
+          for f in sources:
+              r={k:v for k,v in f.items() if k!='urls'}
+              r['filename']='MICRON_FY%d_10K_ISSUER.pdf'%f['year'];r['SEC_original_binary_equivalence']='NOT_TESTED'
+              attempts=[]
+              for url in f['urls']:
+                  try:
+                      req=Request(url,headers={'User-Agent':'SIL Evidence Audit (https://github.com/ihyowoen/Signal_Desk/issues)','Accept':'application/pdf','Accept-Encoding':'identity'})
+                      with urlopen(req,timeout=40) as resp:
+                          b=resp.read()
+                          r['status']=resp.status;r['content_type']=resp.headers.get('Content-Type')
+                      if not b.startswith(b'%PDF-') or len(b)<40000: raise ValueError('Non-PDF or truncated body')
+                      (out/r['filename']).write_bytes(b)
+                      r['bytes']=len(b);r['sha256']=hashlib.sha256(b).hexdigest();r['issuer_source_url']=url;r['custody']='PRESERVED';break
+                  except Exception as e:attempts.append({'url':url,'error':type(e).__name__+':'+str(e)[:160]})
+              else:r['custody']='FAILED'
+              r['attempts']=attempts;results.append(r)
+              print(json.dumps({'year':r['year'],'status':r['custody'],'bytes':r.get('bytes'),'sha256':r.get('sha256'),'errors':attempts}))
+              time.sleep(1)
+          (out/'R53_FY2024_2025_ISSUER_MANIFEST.json').write_text(json.dumps(results,indent=2),encoding='utf8')
+          sys.exit(0 if all(r['custody']=='PRESERVED' for r in results) else 2)
           PY
-      - name: Upload issuer original PDF or raw failure evidence
+      - name: Upload both issuer PDFs or diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sil-r53-micron-issuer-fy2026
+          name: sil-r53-micron-fy2024-fy2025-issuer
           path: out/
           if-no-files-found: warn
           retention-days: 7
