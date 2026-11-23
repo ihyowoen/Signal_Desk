@@ -1,4 +1,4 @@
-name: SIL R54 Micron issuer 9 quarterly 10-Q raw PDFs
+name: SIL R55 Samsung issuer reports 2023-26 15 PDF custody
 on:
   push:
     branches:
@@ -6,87 +6,73 @@ on:
 permissions:
   contents: read
 jobs:
-  micron9:
+  samsung15:
     if: github.ref == 'refs/heads/research/sil-r53-sec-census-20261122'
     runs-on: ubuntu-latest
-    timeout-minutes: 14
+    timeout-minutes: 13
     steps:
       - uses: actions/checkout@v4
-      - name: Download 9 source reports and SHA256 + failure reason
+      - name: Fetch issuer PDF 15 reports, SHA256 and fail-closed log
         run: |
-          cat > /tmp/sil_micron_quarters.py <<'PY'
-          #!/usr/bin/env python3
-          """R54 official Micron investor-IR 10-Q PDF source capture: 9 periods, no SEC raw claim."""
-          import hashlib, json, re, subprocess, sys
-          from html.parser import HTMLParser
+          python3 - <<'PY'
+          import json,subprocess,hashlib,sys
           from pathlib import Path
-          from urllib.parse import urljoin, urlparse
-          
-          OUT=Path('out');OUT.mkdir(exist_ok=True)
-          COHORT=[
-           ('2024','Q1','2023-11-30','0000723125-23-000077'),
-           ('2024','Q2','2024-02-29','0000723125-24-000007'),
-           ('2024','Q3','2024-05-30','0000723125-24-000019'),
-           ('2025','Q1','2024-11-28','0000723125-24-000047'),
-           ('2025','Q2','2025-02-27','0000723125-25-000009'),
-           ('2025','Q3','2025-05-29','0000723125-25-000021'),
-           ('2026','Q1','2025-11-27','0000723125-25-000046'),
-           ('2026','Q2','2026-02-26','0000723125-26-000006'),
-           ('2026','Q3','2026-05-28','0000723125-26-000015'),
-          ]
-          class Links(HTMLParser):
-           def __init__(self):super().__init__();self.active=False;self.href='';self.label='';self.found=[]
-           def handle_starttag(self,tag,attrs):
-            if tag=='a': self.active=True;self.href=dict(attrs).get('href','');self.label=''
-           def handle_data(self,data):
-            if self.active:self.label+=data
-           def handle_endtag(self,tag):
-            if tag=='a' and self.active:
-             if 'download pdf' in self.label.lower():self.found.append(self.href)
-             self.active=False
-          
-          def get(url,dest,limit=30):
-           cmd=['curl','-fSLsS','--retry','1','--retry-delay','1','--connect-timeout','8','--max-time',str(limit),'--max-filesize','25000000','-A','Mozilla/5.0 (compatible; SIL-Source-Custody/1.0)','-o',str(dest),url]
-           z=subprocess.run(cmd,capture_output=True,text=True)
-           return z.returncode,z.stderr.strip()[:240]
-          
-          records=[]
-          for fy,q,period,accession in COHORT:
-           rec={'id':f'R40-MU-{fy}-{q}','form':'10-Q','period_end':period,'accession':accession,'issuer':'Micron Technology, Inc.','source_type':'issuer-hosted PDF conversion, not SEC as-filed original HTML','status':'BLOCKED','SEC_original_bytes_equal':'NOT_TESTED'}
-           detail=f'https://micron.gcs-web.com/sec-filings/sec-filing/10-q/{accession}'
-           rec['detail_page']=detail
-           tmp=OUT/f'.tmp_{fy}_{q}.html'
-           rc,err=get(detail,tmp,limit=18)
-           if rc!=0:
-            rec['failure']='detail_http:'+err
-           else:
-            html=tmp.read_text(encoding='utf-8',errors='replace');links=Links();links.feed(html)
-            if not links.found:
-             rec['failure']='no PDF link discovered in company filing detail'
-            else:
-             pdf=urljoin(detail,links.found[0]);rec['pdf_source_url']=pdf
-             if urlparse(pdf).hostname not in {'micron.gcs-web.com','investors.micron.com'}:
-              rec['failure']='unexpected host '+str(urlparse(pdf).hostname)
-             else:
-              filename=f'MICRON_FY{fy}_{q}_10Q_ISSUER_{period}.pdf';dst=OUT/filename
-              rc,err=get(pdf,dst,limit=33)
-              if rc==0 and dst.exists() and dst.stat().st_size>100000 and dst.open('rb').read(5)==b'%PDF-':
-               b=dst.read_bytes();rec.update({'status':'RAW_PDF_ARCHIVED','file':filename,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest(),'file_magic':'%PDF-'})
-              else:
-               rec['failure']=f'download_pdf rc={rc} {err} bytes={dst.stat().st_size if dst.exists() else 0}'
-               dst.unlink(missing_ok=True)
-           tmp.unlink(missing_ok=True)
-           records.append(rec)
-           print(json.dumps({k:rec.get(k) for k in ('id','status','bytes','failure')},ensure_ascii=False),flush=True)
-          (OUT/'R54_MICRON_QUARTERS_MANIFEST.json').write_text(json.dumps({'scope':'R40 Micron 9 10-Q company-hosted PDF reports','records':records,'completed':sum(r['status']=='RAW_PDF_ARCHIVED' for r in records),'expected':9,'federal_as_filed_byte_equivalence':'NOT_TESTED','amendment_lineage_full_verified':'NO'},ensure_ascii=False,indent=2),encoding='utf-8')
-          sys.exit(0 if all(r['status']=='RAW_PDF_ARCHIVED' for r in records) else 2)
+          out=Path('out');out.mkdir(exist_ok=True)
+          cohort=[(str(year),q) for year in [2023,2024,2025] for q in ['1Q','2Q','3Q','4Q']]+[('2026',q) for q in ['1Q','2Q','3Q']]
+          statuses=[]
+          for year,q in cohort:
+            url=f'https://images.samsung.com/kdp/ir/business-report/{year}_{q}_Interim_Business_Report_vF_kr.pdf'
+            path=out/year/f'SAMSUNG_{year}_{q}_ISSUER_KR.pdf';path.parent.mkdir(parents=True,exist_ok=True)
+            cmd=['curl','-fsSL','--max-time','38','--connect-timeout','9','--retry','0','-A','Mozilla/5.0 (SIL source research; official issuer PDF)','-H','Accept: application/pdf','--max-filesize','65000000','-o',str(path),url]
+            ret=subprocess.run(cmd,capture_output=True,text=True,timeout=43)
+            b=path.read_bytes() if path.exists() else b''
+            status='CAPTURED' if ret.returncode==0 and b.startswith(b'%PDF-') and len(b)>40000 else 'FAILED'
+            row={'R40_issuer':'SAMSUNG','year':year,'period_slot':q,'source_url':url,'official_origin':'images.samsung.com first-party issuer','DART_as_filed_exact_byte_identity':'NOT_TESTED','full_amendment_chain':'NOT_TESTED','capture_status':status,'bytes':len(b) if status=='CAPTURED' else 0,'sha256':hashlib.sha256(b).hexdigest() if status=='CAPTURED' else None,'error':ret.stderr.strip()[:240],'archive_path':str(path) if status=='CAPTURED' else None}
+            if status!='CAPTURED':path.unlink(missing_ok=True)
+            statuses.append(row)
+            print(json.dumps({k:row[k] for k in ('year','period_slot','capture_status','bytes','error')}),flush=True)
+          manifest={'run':'SIL-R55-SAMSUNG-ISSUER-15','as_of_kst':'2026-11-23','expected':len(cohort),'captured':sum(x['capture_status']=='CAPTURED' for x in statuses),'records':statuses,'absolute_scope':'issuer-hosted copies not DART raw, no amendment history'}
+          (out/'R55_SAMSUNG_15_MANIFEST.json').write_text(json.dumps(manifest,indent=2,ensure_ascii=False),encoding='utf-8')
+          print(json.dumps({'expected':len(cohort),'captured':manifest['captured'],'missing':len(cohort)-manifest['captured']}),flush=True)
+          sys.exit(0)
           PY
-          python3 /tmp/sil_micron_quarters.py
-      - name: Upload exact original PDF bytes and manifest regardless of individual failure
+      - name: Upload manifest and HTTP failure provenance
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sil-r54-micron9-pdf-custody
-          path: out/
+          name: sil-r55-samsung-capture-manifest
+          path: out/R55_SAMSUNG_15_MANIFEST.json
+          if-no-files-found: warn
+          retention-days: 10
+      - name: Upload Samsung 2023 PDF bytes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sil-r55-samsung-2023
+          path: out/2023/
+          if-no-files-found: warn
+          retention-days: 10
+      - name: Upload Samsung 2024 PDF bytes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sil-r55-samsung-2024
+          path: out/2024/
+          if-no-files-found: warn
+          retention-days: 10
+      - name: Upload Samsung 2025 PDF bytes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sil-r55-samsung-2025
+          path: out/2025/
+          if-no-files-found: warn
+          retention-days: 10
+      - name: Upload Samsung 2026 PDF bytes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sil-r55-samsung-2026
+          path: out/2026/
           if-no-files-found: warn
           retention-days: 10
