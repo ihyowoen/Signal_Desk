@@ -1,4 +1,4 @@
-name: SIL R55 Samsung issuer reports 2023-26 15 PDF custody
+name: SIL R55 DART Official Full-Amendment Census (conditional research secret)
 on:
   push:
     branches:
@@ -6,73 +6,79 @@ on:
 permissions:
   contents: read
 jobs:
-  samsung15:
+  dart_census:
     if: github.ref == 'refs/heads/research/sil-r53-sec-census-20261122'
     runs-on: ubuntu-latest
-    timeout-minutes: 13
+    timeout-minutes: 10
+    env:
+      DART_API_KEY: ${{ secrets.DART_API_KEY }}
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch issuer PDF 15 reports, SHA256 and fail-closed log
+      - name: Fetch official DART listing without losing amended reports; never reveal credential
         run: |
-          python3 - <<'PY'
-          import json,subprocess,hashlib,sys
+          cat > /tmp/sil_dart.py <<'PY'
+          import json,os,hashlib,sys,re
           from pathlib import Path
+          from urllib.request import Request,urlopen
+          from urllib.parse import urlencode
           out=Path('out');out.mkdir(exist_ok=True)
-          cohort=[(str(year),q) for year in [2023,2024,2025] for q in ['1Q','2Q','3Q','4Q']]+[('2026',q) for q in ['1Q','2Q','3Q']]
-          statuses=[]
-          for year,q in cohort:
-            url=f'https://images.samsung.com/kdp/ir/business-report/{year}_{q}_Interim_Business_Report_vF_kr.pdf'
-            path=out/year/f'SAMSUNG_{year}_{q}_ISSUER_KR.pdf';path.parent.mkdir(parents=True,exist_ok=True)
-            cmd=['curl','-fsSL','--max-time','38','--connect-timeout','9','--retry','0','-A','Mozilla/5.0 (SIL source research; official issuer PDF)','-H','Accept: application/pdf','--max-filesize','65000000','-o',str(path),url]
-            ret=subprocess.run(cmd,capture_output=True,text=True,timeout=43)
-            b=path.read_bytes() if path.exists() else b''
-            status='CAPTURED' if ret.returncode==0 and b.startswith(b'%PDF-') and len(b)>40000 else 'FAILED'
-            row={'R40_issuer':'SAMSUNG','year':year,'period_slot':q,'source_url':url,'official_origin':'images.samsung.com first-party issuer','DART_as_filed_exact_byte_identity':'NOT_TESTED','full_amendment_chain':'NOT_TESTED','capture_status':status,'bytes':len(b) if status=='CAPTURED' else 0,'sha256':hashlib.sha256(b).hexdigest() if status=='CAPTURED' else None,'error':ret.stderr.strip()[:240],'archive_path':str(path) if status=='CAPTURED' else None}
-            if status!='CAPTURED':path.unlink(missing_ok=True)
-            statuses.append(row)
-            print(json.dumps({k:row[k] for k in ('year','period_slot','capture_status','bytes','error')}),flush=True)
-          manifest={'run':'SIL-R55-SAMSUNG-ISSUER-15','as_of_kst':'2026-11-23','expected':len(cohort),'captured':sum(x['capture_status']=='CAPTURED' for x in statuses),'records':statuses,'absolute_scope':'issuer-hosted copies not DART raw, no amendment history'}
-          (out/'R55_SAMSUNG_15_MANIFEST.json').write_text(json.dumps(manifest,indent=2,ensure_ascii=False),encoding='utf-8')
-          print(json.dumps({'expected':len(cohort),'captured':manifest['captured'],'missing':len(cohort)-manifest['captured']}),flush=True)
-          sys.exit(0)
+          cohort=json.loads('''[{"record_id":"R40-SS-2023-Q1","issuer":"삼성전자","period_end":"2023-03-31","document":"분기보고서","filed_date":"2023-05-15","rcept_no":"20230515002335"},{"record_id":"R40-SS-2023-H1","issuer":"삼성전자","period_end":"2023-06-30","document":"반기보고서","filed_date":"2023-08-14","rcept_no":"20230814002534"},{"record_id":"R40-SS-2023-Q3","issuer":"삼성전자","period_end":"2023-09-30","document":"분기보고서","filed_date":"2023-11-14","rcept_no":"20231114002109"},{"record_id":"R40-SS-2023-FY","issuer":"삼성전자","period_end":"2023-12-31","document":"사업보고서","filed_date":"2024-03-12","rcept_no":"20240312000736"},{"record_id":"R40-SS-2024-Q1","issuer":"삼성전자","period_end":"2024-03-31","document":"분기보고서","filed_date":"2024-05-16","rcept_no":"20240516001421"},{"record_id":"R40-SS-2024-H1","issuer":"삼성전자","period_end":"2024-06-30","document":"반기보고서","filed_date":"2024-08-14","rcept_no":"20240814003284"},{"record_id":"R40-SS-2024-Q3","issuer":"삼성전자","period_end":"2024-09-30","document":"분기보고서","filed_date":"2024-11-14","rcept_no":"20241114002642"},{"record_id":"R40-SS-2024-FY","issuer":"삼성전자","period_end":"2024-12-31","document":"사업보고서","filed_date":"2025-03-11","rcept_no":"20250311001085"},{"record_id":"R40-SS-2025-Q1","issuer":"삼성전자","period_end":"2025-03-31","document":"분기보고서","filed_date":"2025-05-15","rcept_no":"20250515001922"},{"record_id":"R40-SS-2025-H1","issuer":"삼성전자","period_end":"2025-06-30","document":"반기보고서","filed_date":"2025-08-14","rcept_no":"20250814003156"},{"record_id":"R40-SS-2025-Q3","issuer":"삼성전자","period_end":"2025-09-30","document":"분기보고서","filed_date":"2025-11-14","rcept_no":"20251114002447"},{"record_id":"R40-SS-2025-FY","issuer":"삼성전자","period_end":"2025-12-31","document":"사업보고서","filed_date":"2026-03-10","rcept_no":"20260310002820"},{"record_id":"R40-SS-2026-Q1","issuer":"삼성전자","period_end":"2026-03-31","document":"분기보고서","filed_date":"2026-05-15","rcept_no":"20260515002181"},{"record_id":"R40-SS-2026-H1","issuer":"삼성전자","period_end":"2026-06-30","document":"반기보고서","filed_date":"2026-08-14","rcept_no":"20260814003699"},{"record_id":"R40-SS-2026-Q3","issuer":"삼성전자","period_end":"2026-09-30","document":"분기보고서","filed_date":"2026-11-16","rcept_no":"20261116001482"},{"record_id":"R40-SK-2023-Q1","issuer":"SK하이닉스","period_end":"2023-03-31","document":"분기보고서","filed_date":"2023-05-15","rcept_no":"20230515001677"},{"record_id":"R40-SK-2023-H1","issuer":"SK하이닉스","period_end":"2023-06-30","document":"반기보고서","filed_date":"2023-08-14","rcept_no":"20230814002376"},{"record_id":"R40-SK-2023-Q3","issuer":"SK하이닉스","period_end":"2023-09-30","document":"분기보고서","filed_date":"2023-11-14","rcept_no":"20231114002574"},{"record_id":"R40-SK-2023-FY","issuer":"SK하이닉스","period_end":"2023-12-31","document":"사업보고서","filed_date":"2024-03-19","rcept_no":"20240319000684"},{"record_id":"R40-SK-2024-Q1","issuer":"SK하이닉스","period_end":"2024-03-31","document":"분기보고서","filed_date":"2024-05-16","rcept_no":"20240516001638"},{"record_id":"R40-SK-2024-H1","issuer":"SK하이닉스","period_end":"2024-06-30","document":"반기보고서","filed_date":"2024-08-14","rcept_no":"20240814001887"},{"record_id":"R40-SK-2024-Q3","issuer":"SK하이닉스","period_end":"2024-09-30","document":"분기보고서","filed_date":"2024-11-14","rcept_no":"20241114001712"},{"record_id":"R40-SK-2024-FY","issuer":"SK하이닉스","period_end":"2024-12-31","document":"사업보고서","filed_date":"2025-03-19","rcept_no":"20250319000665"},{"record_id":"R40-SK-2025-Q1","issuer":"SK하이닉스","period_end":"2025-03-31","document":"분기보고서","filed_date":"2025-05-15","rcept_no":"20250515002103"},{"record_id":"R40-SK-2025-H1","issuer":"SK하이닉스","period_end":"2025-06-30","document":"반기보고서","filed_date":"2025-08-14","rcept_no":"20250814003049"},{"record_id":"R40-SK-2025-Q3","issuer":"SK하이닉스","period_end":"2025-09-30","document":"분기보고서","filed_date":"2025-11-14","rcept_no":"20251114001805"},{"record_id":"R40-SK-2025-FY","issuer":"SK하이닉스","period_end":"2025-12-31","document":"사업보고서","filed_date":"2026-03-17","rcept_no":"20260317000635"},{"record_id":"R40-SK-2026-Q1","issuer":"SK하이닉스","period_end":"2026-03-31","document":"분기보고서","filed_date":"2026-05-15","rcept_no":"20260515002287"},{"record_id":"R40-SK-2026-H1","issuer":"SK하이닉스","period_end":"2026-06-30","document":"반기보고서","filed_date":"2026-08-14","rcept_no":"20260814003509"},{"record_id":"R40-SK-2026-Q3","issuer":"SK하이닉스","period_end":"2026-09-30","document":"분기보고서","filed_date":"2026-11-16","rcept_no":"20261116001715"}]''')
+          key=os.environ.get('DART_API_KEY','')
+          summary={'run':'SIL-R55-DART-OFFICIAL-AMENDMENT-CENSUS','as_of_KST':'2026-11-23','key_configured':len(key)==40,'source_host':'opendart.fss.or.kr','last_reprt_at':'N','verified_complete':False,'companies':{},'errors':[],'note':'No credential or raw source key is recorded; if access incomplete do not assume zero corrections'}
+          if not re.fullmatch(r'[A-Za-z0-9]{40}',key):
+           summary['errors'].append('BLOCKED_NO_VALID_DART_API_KEY_IN_RESEARCH_REPO')
+          else:
+           for company,code in [('삼성전자','00126380'),('SK하이닉스','00164779')]:
+            group=[x for x in cohort if x['issuer']==company]
+            report={'corp_code':code,'records_expected':len(group),'pages':[],'original_report_found':[], 'unmatched_R40':[],'corrected_report_candidates':[],'status':'OPEN'}
+            full=[];total_page=0
+            try:
+             for pg in range(1,51):
+              params={'crtfc_key':key,'corp_code':code,'bgn_de':'20230101','end_de':'20261123','last_reprt_at':'N','pblntf_ty':'A','page_no':pg,'page_count':100}
+              url='https://opendart.fss.or.kr/api/list.json?'+urlencode(params)
+              req=Request(url,headers={'User-Agent':'SIL R55 independent statutory evidence research','Accept':'application/json'})
+              with urlopen(req,timeout=30) as res:
+               b=res.read()
+               if res.status!=200:raise ValueError('non-200')
+              j=json.loads(b)
+              if j.get('status')!='000':raise ValueError('Official API status '+str(j.get('status'))+' at page '+str(pg))
+              total_page=int(j.get('total_page',0))
+              if total_page<1 or total_page>50:raise ValueError('unexpected total_page '+str(total_page))
+              filename=f'{code}_page{pg}.json';(out/filename).write_bytes(b)
+              report['pages'].append({'page':pg,'filename':filename,'sha256':hashlib.sha256(b).hexdigest(),'records':len(j.get('list',[]))})
+              full+=j.get('list',[])
+              if pg>=total_page:break
+             if len(report['pages'])!=total_page:raise ValueError('pagination incomplete')
+             uniq={x.get('rcept_no'):x for x in full}
+             if len(uniq)!=len(full):raise ValueError('duplicate receipt number across pagination')
+             if len(full)!=int(j.get('total_count',-1)):raise ValueError('official total_count mismatch')
+             for x in group:
+              hit=uniq.get(x['rcept_no'])
+              if not hit:report['unmatched_R40'].append(x)
+              else:report['original_report_found'].append({'record_id':x['record_id'],'rcept_no':x['rcept_no'],'report_nm':hit.get('report_nm'),'rcept_dt':hit.get('rcept_dt')})
+             for r in full:
+              title=r.get('report_nm') or ''
+              if any(s in title for s in ['사업보고서','반기보고서','분기보고서']) and ('정정' in title or '철회' in title):
+               report['corrected_report_candidates'].append({'rcept_no':r.get('rcept_no'),'rcept_dt':r.get('rcept_dt'),'report_nm':title,'corp_code':code})
+             report['all_company_periodic_records_in_2023_2026']=len(full)
+             report['total_pages']=total_page
+             report['status']='CENSUS_COMPLETE' if len(report['unmatched_R40'])==0 else 'R40_COHORT_MISMATCH_REVIEW_REQUIRED'
+            except Exception as exc:
+             report['error']=type(exc).__name__+':'+str(exc)[:250]
+             summary['errors'].append(company+' '+report['error'])
+            summary['companies'][company]=report
+           summary['verified_complete']=len(summary['companies'])==2 and all(x.get('status')=='CENSUS_COMPLETE' for x in summary['companies'].values())
+          (out/'R55_DART_CENSUS_RESULT.json').write_text(json.dumps(summary,indent=2,ensure_ascii=False),encoding='utf8')
+          print(json.dumps({'key_configured':summary['key_configured'],'complete':summary['verified_complete'],'counts':{k:{'status':v['status'],'originals_found':len(v['original_report_found']),'amendment_candidates':len(v['corrected_report_candidates']),'total_pages':v.get('total_pages')} for k,v in summary['companies'].items()},'errors':summary['errors']},ensure_ascii=False))
+          sys.exit(0 if summary['verified_complete'] else 2)
+          
           PY
-      - name: Upload manifest and HTTP failure provenance
+          python3 /tmp/sil_dart.py
+      - name: Archive full official response or exact credential status
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sil-r55-samsung-capture-manifest
-          path: out/R55_SAMSUNG_15_MANIFEST.json
+          name: sil-r55-dart-2023-2026-raw-census
+          path: out/
           if-no-files-found: warn
-          retention-days: 10
-      - name: Upload Samsung 2023 PDF bytes
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: sil-r55-samsung-2023
-          path: out/2023/
-          if-no-files-found: warn
-          retention-days: 10
-      - name: Upload Samsung 2024 PDF bytes
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: sil-r55-samsung-2024
-          path: out/2024/
-          if-no-files-found: warn
-          retention-days: 10
-      - name: Upload Samsung 2025 PDF bytes
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: sil-r55-samsung-2025
-          path: out/2025/
-          if-no-files-found: warn
-          retention-days: 10
-      - name: Upload Samsung 2026 PDF bytes
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: sil-r55-samsung-2026
-          path: out/2026/
-          if-no-files-found: warn
-          retention-days: 10
+          retention-days: 7
